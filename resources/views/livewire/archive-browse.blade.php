@@ -139,7 +139,7 @@
                             </div>
 
                             @if ($firstOkSnapshotId)
-                                <a href="{{ url("/archive/snapshot/{$firstOkSnapshotId}") }}"
+                                <a href="{{ url("/view/{$firstOkSnapshotId}") }}"
                                    class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400">
                                     View snapshot →
                                 </a>
