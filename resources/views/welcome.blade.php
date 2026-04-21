@@ -1,7 +1,26 @@
 @extends('layouts.app')
 
 @section('content')
-    <section class="mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center">
+    {{--
+      Landing hero. The .blob-stage is `relative overflow-hidden` so the drifting
+      gradient blobs (see .blob in app.css) stay contained within the hero section
+      instead of bleeding into the footer. aria-hidden because blobs are decorative.
+    --}}
+    <div class="blob-stage relative flex min-h-[calc(100vh-4rem)] items-center overflow-hidden">
+        {{--
+          Blob centers are placed well inside the stage (top-1/4, center-ish)
+          so they never show a hard crop at the edges as they drift.
+          Each blob is ~30rem — large enough to feel cinematic even with the big
+          translate/rotate values in the keyframes.
+        --}}
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10">
+            {{-- 3 large drifting blobs on the gradient background --}}
+            <div class="blob blob--a left-[3%]   top-[8%]    h-[30rem] w-[30rem]"></div>
+            <div class="blob blob--b right-[-2%] top-[22%]   h-[36rem] w-[36rem]"></div>
+            <div class="blob blob--c left-[28%]  bottom-[4%] h-[28rem] w-[28rem]"></div>
+        </div>
+
+        <section class="relative mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center">
         <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:border-brand-900 dark:bg-brand-950 dark:text-brand-300">
             Internal Tool · Sites at Scale
         </span>
@@ -37,5 +56,6 @@
                 <div class="mt-1">Crawl engine</div>
             </div>
         </div>
-    </section>
+        </section>
+    </div>
 @endsection

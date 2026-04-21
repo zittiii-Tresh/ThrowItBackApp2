@@ -43,4 +43,79 @@
                focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
                disabled:opacity-50 disabled:pointer-events-none;
     }
+
+    /* -----------------------------------------------------------------------------
+       Animated gradient blobs — landing page only (welcome.blade.php).
+       Five absolutely-positioned blurred circles drift, scale, and rotate in
+       distinct paths to create the "flowing purple ribbon" effect. Each blob
+       uses a different purple shade so the layered result feels iridescent.
+       ----------------------------------------------------------------------------- */
+    .blob {
+        @apply pointer-events-none absolute rounded-full blur-3xl opacity-70;
+        will-change: transform;
+    }
+
+    /* Each blob gets a distinct keyframe + duration + delay so they never tile. */
+    .blob--a { animation: blob-drift   18s ease-in-out infinite;       }
+    .blob--b { animation: blob-drift-2 22s ease-in-out infinite  -6s;  }
+    .blob--c { animation: blob-drift-3 16s ease-in-out infinite  -9s;  }
+
+    /* Light mode — layered purples for a soft ribbon effect on the gradient bg. */
+    .blob--a { background: radial-gradient(circle at 30% 30%, #A197E3 0%, transparent 65%); }
+    .blob--b { background: radial-gradient(circle at 70% 40%, #E0B8F0 0%, transparent 65%); }
+    .blob--c { background: radial-gradient(circle at 40% 70%, #8276D4 0%, transparent 65%); }
+
+    /* Dark mode — deeper, more saturated violets on the near-black background. */
+    html.dark .blob { @apply opacity-60; }
+    html.dark .blob--a { background: radial-gradient(circle at 30% 30%, #6B21A8 0%, transparent 65%); }
+    html.dark .blob--b { background: radial-gradient(circle at 70% 40%, #A855F7 0%, transparent 65%); }
+    html.dark .blob--c { background: radial-gradient(circle at 40% 70%, #4C1D95 0%, transparent 65%); }
+
+    /* -----------------------------------------------------------------------------
+       Landing page gradient background. Stops are layered diagonal radial gradients
+       so the wash has subtle warmth instead of a flat two-stop diagonal.
+
+       NOTE: `isolation: isolate` creates a new stacking context on .blob-stage so
+       the blobs' negative z-index stays within the stage — otherwise they'd sink
+       BELOW this gradient background and disappear.
+       ----------------------------------------------------------------------------- */
+    .blob-stage {
+        isolation: isolate;
+        background:
+            radial-gradient(ellipse 80% 60% at 20% 15%, #EFEAFB 0%, transparent 55%),
+            radial-gradient(ellipse 70% 60% at 85% 80%, #FBEAF5 0%, transparent 55%),
+            linear-gradient(135deg, #FDFCFF 0%, #F5F1FE 100%);
+    }
+    html.dark .blob-stage {
+        background:
+            radial-gradient(ellipse 90% 70% at 20% 15%, #1E143C 0%, transparent 55%),
+            radial-gradient(ellipse 80% 65% at 85% 80%, #2A0F3D 0%, transparent 55%),
+            linear-gradient(135deg, #0B0815 0%, #140929 100%);
+    }
+
+}
+
+/* Five distinct drift paths — each blob has its own choreography so the overall
+   composition never looks synchronized. Amplitude is ~20-25% with rotation up
+   to 10deg — clearly visible motion while still feeling atmospheric. */
+@keyframes blob-drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1)    rotate(0deg); }
+    25%      { transform: translate3d(20%, -10%, 0) scale(1.15) rotate(8deg); }
+    50%      { transform: translate3d(10%, 18%, 0)  scale(1.08) rotate(-4deg); }
+    75%      { transform: translate3d(-16%, 10%, 0) scale(0.88) rotate(6deg); }
+}
+@keyframes blob-drift-2 {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1)     rotate(0deg); }
+    25%      { transform: translate3d(-22%, 12%, 0) scale(1.12) rotate(-10deg); }
+    50%      { transform: translate3d(-8%, -18%, 0) scale(0.92) rotate(4deg); }
+    75%      { transform: translate3d(14%, -14%, 0) scale(1.08) rotate(7deg); }
+}
+@keyframes blob-drift-3 {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1)    rotate(0deg); }
+    33%      { transform: translate3d(18%, 22%, 0)  scale(0.9)  rotate(5deg); }
+    66%      { transform: translate3d(-20%, -12%, 0) scale(1.18) rotate(-7deg); }
+}
+/* Respect users who opt out of motion — freeze blobs in start position. */
+@media (prefers-reduced-motion: reduce) {
+    .blob { animation: none; }
 }
