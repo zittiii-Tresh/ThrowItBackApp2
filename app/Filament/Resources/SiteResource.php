@@ -227,14 +227,22 @@ class SiteResource extends Resource
                             'started_at'   => now(),
                         ]);
 
-                        // Spawn detached php; the command picks up the
-                        // already-created run via --run-id.
-                        \Illuminate\Support\Facades\Process::path(base_path())
-                            ->start([
-                                PHP_BINARY, 'artisan', 'crawl:run',
-                                (string) $record->id,
-                                '--run-id=' . $run->id,
-                            ]);
+                        // Fully detached subprocess that keeps running after
+                        // the Filament request returns. Symfony's Process::start
+                        // doesn't detach cleanly on Windows — the child gets
+                        // orphaned when PHP's web request ends. popen + Windows'
+                        // `start /B` (or `&` on Linux) is the reliable path.
+                        $phpBin = escapeshellarg(PHP_BINARY);
+                        $artisan = escapeshellarg(base_path('artisan'));
+                        $args = sprintf('crawl:run %d --run-id=%d', $record->id, $run->id);
+
+                        if (PHP_OS_FAMILY === 'Windows') {
+                            $cmd = "start /B \"\" $phpBin $artisan $args > NUL 2>&1";
+                        } else {
+                            $cmd = "$phpBin $artisan $args > /dev/null 2>&1 &";
+                        }
+
+                        pclose(popen($cmd, 'r'));
                     })
                     ->successNotificationTitle(fn (Site $record) => "Crawling {$record->name} — watch progress in the Status column"),
 
