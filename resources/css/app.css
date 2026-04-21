@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* -----------------------------------------------------------------------------
+   SiteArchive — base styles for the user archive (non-admin) side.
+   Filament has its own compiled CSS; this file only powers the Livewire-driven
+   user pages (home, browse, viewer, assets, compare) built in Phase 6.
+   ----------------------------------------------------------------------------- */
+
+@layer base {
+    html {
+        @apply antialiased;
+    }
+
+    body {
+        @apply bg-white text-surface-900;
+    }
+
+    html.dark body {
+        @apply bg-surface-950 text-surface-100;
+    }
+}
+
+@layer components {
+    /* Pill-shaped site chip shown on the Home screen (Screen 1) */
+    .site-chip {
+        @apply inline-flex items-center gap-2 rounded-full border border-surface-200 bg-white
+               px-4 py-2 text-sm text-surface-700 transition
+               hover:border-brand-400 hover:text-brand-700;
+    }
+
+    html.dark .site-chip {
+        @apply border-surface-800 bg-surface-900 text-surface-300
+               hover:border-brand-500 hover:text-brand-300;
+    }
+
+    /* Primary CTA button — matches the purple button in the reference UI */
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg
+               bg-brand-600 px-5 py-2.5 text-sm font-medium text-white
+               transition hover:bg-brand-700 focus:outline-none
+               focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+               disabled:opacity-50 disabled:pointer-events-none;
+    }
+}

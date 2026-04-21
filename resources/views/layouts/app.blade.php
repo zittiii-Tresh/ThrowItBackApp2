@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ $title ?? config('app.name', 'SiteArchive') }}</title>
+
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet">
+
+    {{--
+      Pre-hydration theme bootstrap — runs before Tailwind styles paint so the
+      page doesn't flash light-mode on dark-preference reloads. Reads localStorage
+      first, falls back to OS `prefers-color-scheme`.
+    --}}
+    <script>
+        (function () {
+            var stored = localStorage.getItem('theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark' || (stored === null && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
+</head>
+<body class="min-h-full flex flex-col font-sans">
+
+    <header class="border-b border-surface-200 dark:border-surface-800">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+            <a href="{{ route('home') }}" class="flex items-center gap-2">
+                <span class="grid h-8 w-8 place-items-center rounded-md bg-brand-600 text-sm font-semibold text-white">SA</span>
+                <span class="text-sm font-semibold">SiteArchive</span>
+            </a>
+
+            <nav class="flex items-center gap-6 text-sm text-surface-600 dark:text-surface-400">
+                <a href="{{ route('home') }}" class="hover:text-surface-900 dark:hover:text-surface-100">Home</a>
+                {{-- Browse / Viewer / Compare links come online in Phase 6. --}}
+                <a href="#" class="pointer-events-none opacity-40">Browse</a>
+                <a href="#" class="pointer-events-none opacity-40">Viewer</a>
+                <a href="#" class="pointer-events-none opacity-40">Compare</a>
+
+                <button type="button"
+                        onclick="toggleTheme()"
+                        class="grid h-8 w-8 place-items-center rounded-md border border-surface-200 dark:border-surface-800 hover:bg-surface-100 dark:hover:bg-surface-800"
+                        aria-label="Toggle theme">
+                    {{-- Sun icon (visible in dark mode) --}}
+                    <svg class="hidden h-4 w-4 dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    {{-- Moon icon (visible in light mode) --}}
+                    <svg class="h-4 w-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                </button>
+
+                <a href="{{ url('/admin') }}" class="btn-primary">Admin</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1">
+        {{ $slot ?? '' }}
+        @yield('content')
+    </main>
+
+    <footer class="border-t border-surface-200 py-6 text-center text-xs text-surface-500 dark:border-surface-800 dark:text-surface-500">
+        SiteArchive — Internal Tool · Sites at Scale
+    </footer>
+
+    <script>
+        // Theme toggle: flips .dark on <html> and persists the choice.
+        function toggleTheme() {
+            var isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+    </script>
+
+    @livewireScripts
+</body>
+</html>
