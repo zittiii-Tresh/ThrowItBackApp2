@@ -113,7 +113,14 @@
                 <ul class="mt-4 space-y-3">
                     @foreach ($runs as $run)
                         @php
-                            $firstOkSnapshotId = optional($run->snapshots()->where('status_code',200)->first())->id;
+                            // Prefer 200-status snapshots, fall back to whatever we
+                            // captured — the viewer handles empty-HTML states gracefully,
+                            // so View is never a dead link.
+                            $snap = $run->snapshots()
+                                ->orderByRaw('status_code = 200 DESC')
+                                ->orderBy('id')
+                                ->first();
+                            $firstOkSnapshotId = $snap?->id;
                         @endphp
                         <li class="rounded-lg border border-surface-200 p-3 dark:border-surface-800">
                             <div class="flex items-center justify-between gap-3">

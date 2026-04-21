@@ -6,6 +6,7 @@ use App\Enums\CrawlStatus;
 use App\Enums\TriggerSource;
 use App\Filament\Resources\CrawlRunResource\Pages;
 use App\Models\CrawlRun;
+use App\Models\Site;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -60,10 +61,12 @@ class CrawlRunResource extends Resource
                     ->alignment('end')
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('status')
-                    ->badge()
-                    ->formatStateUsing(fn (CrawlStatus $state) => $state->label())
-                    ->color(fn (CrawlStatus $state) => $state->color()),
+                // Live status: spinner + progress bar while Running, regular
+                // colored badge otherwise. Same Blade view used on the sites
+                // list — but here passes the CrawlRun as $getRecord().
+                Tables\Columns\ViewColumn::make('liveStatus')
+                    ->label('Status')
+                    ->view('filament.columns.crawl-run-status'),
 
                 Tables\Columns\TextColumn::make('triggered_by')
                     ->label('Triggered')
@@ -104,22 +107,30 @@ class CrawlRunResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                // View → opens first successful snapshot in the archive preview.
-                // Phase 6 will replace this with the proper per-run viewer.
+                // View → opens the run's viewer. Prefers a 200-status snapshot;
+                // falls back to any snapshot at all so every run has a working
+                // View action. The viewer shows a "capture failed" state if
+                // the snapshot has no HTML, so the link is never a dead end.
                 Tables\Actions\Action::make('viewFirstSnapshot')
                     ->label('View')
                     ->icon('heroicon-m-eye')
                     ->color('primary')
-                    ->url(fn (CrawlRun $r) => optional(
-                        $r->snapshots()->where('status_code', 200)->first()
-                    )?->id ? "/archive/snapshot/" . $r->snapshots()->where('status_code', 200)->first()->id : null)
+                    ->url(function (CrawlRun $r): ?string {
+                        $snap = $r->snapshots()
+                            ->orderByRaw('status_code = 200 DESC') // prefer 200 rows first
+                            ->orderBy('id')
+                            ->first();
+                        return $snap ? url('/view/' . $snap->id) : null;
+                    })
                     ->openUrlInNewTab()
-                    ->visible(fn (CrawlRun $r) => $r->snapshots()->where('status_code', 200)->exists()),
+                    ->visible(fn (CrawlRun $r) => $r->snapshots()->exists()),
             ])
             ->bulkActions([])
             ->emptyStateHeading('No crawl runs yet')
             ->emptyStateDescription('Crawls dispatched by the scheduler or manual triggers will appear here.')
-            ->emptyStateIcon('heroicon-o-clock');
+            ->emptyStateIcon('heroicon-o-clock')
+            // Auto-refresh so in-flight runs' progress bars animate live.
+            ->poll('2s');
     }
 
     public static function getPages(): array

@@ -49,6 +49,13 @@ class CrawlSiteJob implements ShouldQueue
     public function __construct(
         public int $siteId,
         public TriggerSource $triggeredBy = TriggerSource::Scheduler,
+        /**
+         * Optional ID of an existing CrawlRun row to pick up. When provided
+         * (e.g. by the Filament "Crawl now" action that pre-creates a queued
+         * row so the UI reflects it instantly), we reuse that row instead of
+         * creating a second one.
+         */
+        public ?int $existingRunId = null,
     ) {}
 
     public function handle(HtmlRewriter $rewriter, AssetDownloader $downloader): void
@@ -59,12 +66,26 @@ class CrawlSiteJob implements ShouldQueue
             return;
         }
 
-        $run = CrawlRun::create([
-            'site_id'      => $site->id,
-            'status'       => CrawlStatus::Running,
-            'triggered_by' => $this->triggeredBy,
-            'started_at'   => now(),
-        ]);
+        // Reuse an existing queued run if the caller pre-created one (Filament
+        // action does this to show "Running" in the table immediately). Fall
+        // back to creating a fresh run.
+        $run = $this->existingRunId
+            ? CrawlRun::find($this->existingRunId)
+            : null;
+
+        if ($run) {
+            $run->update([
+                'status'     => CrawlStatus::Running,
+                'started_at' => now(),
+            ]);
+        } else {
+            $run = CrawlRun::create([
+                'site_id'      => $site->id,
+                'status'       => CrawlStatus::Running,
+                'triggered_by' => $this->triggeredBy,
+                'started_at'   => now(),
+            ]);
+        }
 
         try {
             $observer = new ArchiveCrawlObserver($run, $rewriter, $downloader);

@@ -20,7 +20,7 @@ use Illuminate\Console\Command;
  */
 class CrawlRunCommand extends Command
 {
-    protected $signature   = 'crawl:run {site : Site ID or base_url substring}';
+    protected $signature   = 'crawl:run {site : Site ID or base_url substring} {--run-id= : Attach to an existing queued CrawlRun (used by the Filament "Crawl now" action)}';
     protected $description = 'Run a crawl synchronously (bypasses the queue) — for manual testing';
 
     public function handle(): int
@@ -42,8 +42,10 @@ class CrawlRunCommand extends Command
 
         // dispatchSync runs through the container so Laravel resolves the
         // HtmlRewriter + AssetDownloader dependencies the job's handle()
-        // signature asks for.
-        CrawlSiteJob::dispatchSync($site->id, TriggerSource::Manual);
+        // signature asks for. --run-id lets the Filament "Crawl now" action
+        // pre-create a row so the UI flashes "Running" immediately.
+        $existingRunId = $this->option('run-id') ? (int) $this->option('run-id') : null;
+        CrawlSiteJob::dispatchSync($site->id, TriggerSource::Manual, $existingRunId);
 
         $elapsed = round(microtime(true) - $start, 2);
 

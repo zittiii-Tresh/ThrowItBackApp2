@@ -1,12 +1,14 @@
-<div class="blob-stage relative overflow-hidden">
-    {{-- Background gradient + drifting blobs from the landing design --}}
+<div class="blob-stage relative flex min-h-[calc(100vh-8rem)] items-center justify-center overflow-hidden">
+    {{-- Stage fills viewport minus header/footer, and the section is
+         vertically centered inside it (items-center justify-center)
+         so content sits in the middle instead of hugging the top. --}}
     <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10">
         <div class="blob blob--a left-[3%]   top-[8%]    h-[30rem] w-[30rem]"></div>
         <div class="blob blob--b right-[-2%] top-[22%]   h-[36rem] w-[36rem]"></div>
         <div class="blob blob--c left-[28%]  bottom-[4%] h-[28rem] w-[28rem]"></div>
     </div>
 
-    <section class="relative mx-auto flex max-w-3xl flex-col items-center px-6 pt-16 pb-24 text-center">
+    <section class="relative mx-auto flex w-full max-w-3xl flex-col items-center px-6 py-10 text-center">
         <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:border-brand-900 dark:bg-brand-950 dark:text-brand-300">
             Internal Tool · Sites at Scale
         </span>

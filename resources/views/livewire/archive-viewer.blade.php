@@ -99,16 +99,44 @@
     {{-- Main content area: iframe viewer + optional assets panel --}}
     <div class="mx-auto flex max-w-7xl gap-4 px-6 py-5">
 
-        {{-- iframe loads the archived HTML, which points at /archive/asset/... --}}
+        {{-- iframe loads the archived HTML, which points at /archive/asset/...
+             OR shows a capture-failed empty state if the fetch came back
+             with no HTML (status=0 / 4xx / 5xx). Prevents dead "View" links. --}}
         <div class="flex-1 rounded-xl border border-surface-200 bg-surface-50 p-2 dark:border-surface-800 dark:bg-surface-900">
-            <div class="mx-auto {{ $viewportClass }} overflow-hidden rounded-lg border border-surface-200 bg-white shadow-sm dark:border-surface-800 dark:bg-white">
-                <iframe
-                    src="{{ url('/archive/snapshot/' . $snapshot->id) }}"
-                    class="h-[80vh] w-full"
-                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-                    title="Archived: {{ $snapshot->url }}"
-                ></iframe>
-            </div>
+            @if ($snapshot->html_path === '' || $snapshot->status_code < 200 || $snapshot->status_code >= 400)
+                <div class="mx-auto {{ $viewportClass }} flex min-h-[60vh] flex-col items-center justify-center rounded-lg border border-dashed border-surface-200 bg-white p-10 text-center dark:border-surface-700 dark:bg-surface-950">
+                    <div class="grid h-14 w-14 place-items-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-7 w-7">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+                        </svg>
+                    </div>
+                    <h2 class="mt-5 text-base font-semibold text-surface-900 dark:text-surface-100">Capture failed</h2>
+                    <p class="mt-2 max-w-md text-sm text-surface-600 dark:text-surface-400">
+                        This snapshot couldn't be fetched. The live site returned
+                        @if ($snapshot->status_code === 0)
+                            a network error (timeout, DNS, or TLS failure)
+                        @else
+                            HTTP {{ $snapshot->status_code }}
+                        @endif
+                        — we saved the row for the record but there's no HTML to play back.
+                    </p>
+                    <p class="mt-3 text-xs text-surface-500 dark:text-surface-500">
+                        {{ $snapshot->url }}
+                    </p>
+                    <a href="{{ route('archive.browse', $site) }}" class="mt-6 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">
+                        ← Back to calendar
+                    </a>
+                </div>
+            @else
+                <div class="mx-auto {{ $viewportClass }} overflow-hidden rounded-lg border border-surface-200 bg-white shadow-sm dark:border-surface-800 dark:bg-white">
+                    <iframe
+                        src="{{ url('/archive/snapshot/' . $snapshot->id) }}"
+                        class="h-[80vh] w-full"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        title="Archived: {{ $snapshot->url }}"
+                    ></iframe>
+                </div>
+            @endif
         </div>
 
         {{-- Assets panel (Screen 4) — slide-in from the right when open --}}

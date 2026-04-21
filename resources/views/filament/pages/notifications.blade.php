@@ -30,7 +30,12 @@
             </p>
         </div>
     @else
-        <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+        {{--
+            Each notification is its own rounded card instead of a flush list —
+            hover lights up the border + adds a ring, no background fill,
+            so text contrast stays the same in both themes.
+        --}}
+        <ul class="space-y-2">
             @foreach ($events as $event)
                 @php
                     // Dot color by severity level.
@@ -39,21 +44,37 @@
                         'warning' => 'bg-amber-500',
                         default   => 'bg-emerald-500',
                     };
+                    // Matching glow color on hover — ring-*-300 picks up the level.
+                    $ringColor = match ($event->level->value) {
+                        'error'   => 'hover:ring-rose-300 dark:hover:ring-rose-700 hover:border-rose-300 dark:hover:border-rose-700',
+                        'warning' => 'hover:ring-amber-300 dark:hover:ring-amber-700 hover:border-amber-300 dark:hover:border-amber-700',
+                        default   => 'hover:ring-emerald-300 dark:hover:ring-emerald-700 hover:border-emerald-300 dark:hover:border-emerald-700',
+                    };
                     $isRead = $event->read_at !== null;
                 @endphp
 
                 <li
                     wire:click="markRead({{ $event->id }})"
-                    class="flex cursor-pointer items-start gap-3 p-4 transition hover:bg-gray-50 dark:hover:bg-gray-800/50
-                           {{ $isRead ? 'opacity-60' : '' }}"
+                    class="group flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition
+                           hover:ring-2 hover:ring-offset-0 hover:shadow-md
+                           dark:border-gray-800 dark:bg-gray-900
+                           {{ $ringColor }}"
                 >
-                    <span class="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full {{ $dotColor }}"></span>
+                    <span class="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full {{ $dotColor }} {{ $isRead ? 'opacity-50' : '' }}"></span>
 
                     <div class="min-w-0 flex-1">
-                        <p class="text-sm {{ $isRead ? 'text-gray-600 dark:text-gray-400' : 'font-medium text-gray-900 dark:text-gray-100' }}">
+                        <p @class([
+                            'text-sm',
+                            'font-medium text-gray-900 dark:text-gray-100' => ! $isRead,
+                            'text-gray-500 dark:text-gray-400'             => $isRead,
+                        ])>
                             {{ $event->message }}
                         </p>
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p @class([
+                            'mt-0.5 text-xs',
+                            'text-gray-500 dark:text-gray-400' => ! $isRead,
+                            'text-gray-400 dark:text-gray-500' => $isRead,
+                        ])>
                             {{ $event->created_at->format('M j, Y · g:i A') }}
                             @if ($event->site)
                                 · <a

@@ -179,11 +179,13 @@ class SiteResource extends Resource
                     ->badge()
                     ->color('primary'),
 
-                Tables\Columns\TextColumn::make('last_crawled_at')
-                    ->label('Last crawl')
-                    ->since()
-                    ->placeholder('— never —')
-                    ->sortable(),
+                // Live status column — shows an animated progress bar while a
+                // crawl is in flight, or the last run's status + time-ago when
+                // idle. Rendered by resources/views/filament/columns/crawl-status.blade.php
+                // and kept fresh by the table's ->poll() below.
+                Tables\Columns\ViewColumn::make('crawlStatus')
+                    ->label('Status')
+                    ->view('filament.columns.crawl-status'),
 
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Active')
@@ -197,18 +199,44 @@ class SiteResource extends Resource
                     ->native(false),
             ])
             ->actions([
-                // "Crawl now" — the actual dispatch lives in Phase 3 (CrawlSiteJob).
-                // For now the action updates next_run_at so the Phase 4 scheduler
-                // will pick it up on its next tick.
+                // "Crawl now" — creates a CrawlRun row in Running state
+                // SYNCHRONOUSLY so the table's polling immediately sees it,
+                // then spawns a detached background process to do the heavy
+                // lifting. Without the synchronous row creation, the first
+                // 2s poll tick hits before php-cli has booted and the user
+                // sees "nothing happening."
                 Tables\Actions\Action::make('crawlNow')
                     ->label('Crawl now')
                     ->icon('heroicon-m-bolt')
                     ->color('primary')
                     ->requiresConfirmation()
+                    ->modalHeading(fn (Site $record) => "Crawl {$record->name} now?")
+                    ->modalDescription('Runs immediately in the background. Progress appears in Crawl History and the dashboard.')
+                    ->modalSubmitActionLabel('Start crawl')
                     ->action(function (Site $record): void {
-                        $record->update(['next_run_at' => now()]);
+                        // Clear scheduler pickup so the minute-tick won't also
+                        // dispatch this site while the manual run is in flight.
+                        $record->update(['next_run_at' => null]);
+
+                        // Pre-create the run row NOW so the table's next poll
+                        // already sees a "Running" row for this site.
+                        $run = \App\Models\CrawlRun::create([
+                            'site_id'      => $record->id,
+                            'status'       => \App\Enums\CrawlStatus::Running,
+                            'triggered_by' => \App\Enums\TriggerSource::Manual,
+                            'started_at'   => now(),
+                        ]);
+
+                        // Spawn detached php; the command picks up the
+                        // already-created run via --run-id.
+                        \Illuminate\Support\Facades\Process::path(base_path())
+                            ->start([
+                                PHP_BINARY, 'artisan', 'crawl:run',
+                                (string) $record->id,
+                                '--run-id=' . $run->id,
+                            ]);
                     })
-                    ->successNotificationTitle('Crawl queued — will run on the next scheduler tick'),
+                    ->successNotificationTitle(fn (Site $record) => "Crawling {$record->name} — watch progress in the Status column"),
 
                 Tables\Actions\EditAction::make(),
             ])
@@ -220,7 +248,11 @@ class SiteResource extends Resource
             ->emptyStateHeading('No sites yet')
             ->emptyStateDescription('Register the first site to start archiving.')
             ->emptyStateIcon('heroicon-o-globe-alt')
-            ->defaultSort('name');
+            ->defaultSort('name')
+            // Auto-refresh every 2s so the Status column's progress bar
+            // ticks forward live while a crawl is running. Filament runs
+            // a cheap single query per tick — no background websockets.
+            ->poll('2s');
     }
 
     public static function getPages(): array

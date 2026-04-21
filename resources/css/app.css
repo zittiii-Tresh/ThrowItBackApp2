@@ -31,8 +31,8 @@
     }
 
     html.dark .site-chip {
-        @apply border-surface-800 bg-surface-900 text-surface-300
-               hover:border-brand-500 hover:text-brand-300;
+        @apply border-surface-700 bg-surface-800 text-surface-100
+               hover:border-brand-400 hover:bg-surface-700 hover:text-brand-200;
     }
 
     /* Primary CTA button — matches the purple button in the reference UI */
@@ -65,11 +65,12 @@
     .blob--b { background: radial-gradient(circle at 70% 40%, #E0B8F0 0%, transparent 65%); }
     .blob--c { background: radial-gradient(circle at 40% 70%, #8276D4 0%, transparent 65%); }
 
-    /* Dark mode — deeper, more saturated violets on the near-black background. */
-    html.dark .blob { @apply opacity-60; }
-    html.dark .blob--a { background: radial-gradient(circle at 30% 30%, #6B21A8 0%, transparent 65%); }
-    html.dark .blob--b { background: radial-gradient(circle at 70% 40%, #A855F7 0%, transparent 65%); }
-    html.dark .blob--c { background: radial-gradient(circle at 40% 70%, #4C1D95 0%, transparent 65%); }
+    /* Dark mode — brighter violets so the blobs actually glow instead of
+       blending into the near-black body background. */
+    html.dark .blob { @apply opacity-80; }
+    html.dark .blob--a { background: radial-gradient(circle at 30% 30%, #7E22CE 0%, transparent 65%); }
+    html.dark .blob--b { background: radial-gradient(circle at 70% 40%, #C026D3 0%, transparent 65%); }
+    html.dark .blob--c { background: radial-gradient(circle at 40% 70%, #6D28D9 0%, transparent 65%); }
 
     /* -----------------------------------------------------------------------------
        Landing page gradient background. Stops are layered diagonal radial gradients
@@ -88,9 +89,9 @@
     }
     html.dark .blob-stage {
         background:
-            radial-gradient(ellipse 90% 70% at 20% 15%, #1E143C 0%, transparent 55%),
-            radial-gradient(ellipse 80% 65% at 85% 80%, #2A0F3D 0%, transparent 55%),
-            linear-gradient(135deg, #0B0815 0%, #140929 100%);
+            radial-gradient(ellipse 90% 70% at 20% 15%, #2D1B5C 0%, transparent 55%),
+            radial-gradient(ellipse 80% 65% at 85% 80%, #451A62 0%, transparent 55%),
+            linear-gradient(135deg, #0B0815 0%, #1A0F3A 100%);
     }
 
 }

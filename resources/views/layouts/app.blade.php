@@ -63,7 +63,7 @@
         @yield('content')
     </main>
 
-    <footer class="border-t border-surface-200 py-6 text-center text-xs text-surface-500 dark:border-surface-800 dark:text-surface-500">
+    <footer class="border-t border-surface-200 py-6 text-center text-xs text-surface-500 dark:border-surface-800 dark:text-surface-300">
         SiteArchive — Internal Tool · Sites at Scale
     </footer>
 
