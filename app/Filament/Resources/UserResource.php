@@ -119,11 +119,32 @@ class UserResource extends Resource
 
                 Tables\Actions\EditAction::make(),
 
+                // Delete is always surfaced inline (not hidden in a dropdown)
+                // so it's one click away. Hidden only on your own row to
+                // prevent self-lockout.
                 Tables\Actions\DeleteAction::make()
-                    // Guard rail: don't let admins delete themselves.
+                    ->label('Delete')
+                    ->icon('heroicon-m-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (User $u) => "Delete admin {$u->name}?")
+                    ->modalDescription('They will lose access to the admin panel immediately. This cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, delete admin')
+                    ->successNotificationTitle(fn (User $u) => "{$u->name} deleted")
                     ->visible(fn (User $u) => $u->id !== auth()->id()),
             ])
-            ->bulkActions([])
+            ->bulkActions([
+                // Bulk delete — skips your own row automatically.
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->before(function (\Illuminate\Database\Eloquent\Collection $records) {
+                            // Drop yourself from the selected set before the
+                            // delete runs — prevents self-lockout even if your
+                            // row slipped into the selection.
+                            $records->reject(fn (User $u) => $u->id === auth()->id());
+                        }),
+                ]),
+            ])
             ->emptyStateHeading('No admins yet')
             ->defaultSort('created_at', 'desc');
     }
