@@ -3,9 +3,11 @@
 namespace App\Jobs;
 
 use App\Enums\CrawlStatus;
+use App\Enums\EventLevel;
 use App\Enums\TriggerSource;
 use App\Models\CrawlRun;
 use App\Models\Site;
+use App\Models\SystemEvent;
 use App\Services\Archive\ArchiveCrawlObserver;
 use App\Services\Archive\AssetDownloader;
 use App\Services\Archive\HtmlRewriter;
@@ -103,6 +105,22 @@ class CrawlSiteJob implements ShouldQueue
                 'last_crawled_at' => now(),
                 'next_run_at'     => CrawlSchedule::nextRunFor($site, CarbonImmutable::now()),
             ]);
+
+            // Log to notifications feed. Partial (some pages failed) is a
+            // warning; full success is info. Failed path is handled below.
+            SystemEvent::log(
+                event: $hasFailures ? 'crawl.partial' : 'crawl.complete',
+                message: sprintf(
+                    '%s — %d pages, %d assets (%s)',
+                    $site->name,
+                    $run->pages_crawled,
+                    $run->assets_downloaded,
+                    $run->durationHuman(),
+                ),
+                level: $hasFailures ? EventLevel::Warning : EventLevel::Info,
+                site: $site,
+                run: $run,
+            );
         } catch (\Throwable $e) {
             Log::error('Crawl job failed', [
                 'run_id' => $run->id,
@@ -114,6 +132,14 @@ class CrawlSiteJob implements ShouldQueue
                 'finished_at'   => now(),
                 'error_message' => $e->getMessage(),
             ]);
+
+            SystemEvent::log(
+                event: 'crawl.failed',
+                message: "Crawl failed for {$site->name} — " . \Illuminate\Support\Str::limit($e->getMessage(), 100),
+                level: EventLevel::Error,
+                site: $site,
+                run: $run,
+            );
 
             throw $e;
         }

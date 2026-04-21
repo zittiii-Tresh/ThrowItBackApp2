@@ -47,8 +47,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                // Note: FilamentInfoWidget removed — we'll add custom dashboard widgets in Phase 5
+                // Stock Filament widgets removed — our custom DashboardStats,
+                // RecentCrawlRuns, and UpcomingCrawls are auto-discovered
+                // from app/Filament/Widgets via discoverWidgets() above.
             ])
             ->middleware([
                 EncryptCookies::class,
