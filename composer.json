@@ -12,6 +12,7 @@
         "laravel/horizon": "*",
         "laravel/tinker": "^2.9",
         "predis/predis": "*",
+        "sebastian/diff": "^6.0",
         "spatie/crawler": "*"
     },
     "require-dev": {
