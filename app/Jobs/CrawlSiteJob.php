@@ -70,8 +70,8 @@ class CrawlSiteJob implements ShouldQueue
             $observer = new ArchiveCrawlObserver($run, $rewriter, $downloader);
 
             Crawler::create([
-                    'timeout'         => 15,
-                    'connect_timeout' => 5,
+                    'timeout'         => 30,   // was 15 — Netlify cold starts can take ~20s on SPA routes
+                    'connect_timeout' => 10,   // was 5 — TLS handshake on shared hosts can spike
                     'allow_redirects' => ['max' => 3],
                     'headers'         => [
                         'User-Agent' => 'SiteArchiveBot/1.0 (+internal-tool)',
@@ -79,6 +79,15 @@ class CrawlSiteJob implements ShouldQueue
                 ])
                 ->setMaximumDepth($site->crawl_depth)
                 ->setTotalCrawlLimit($site->max_pages)
+                // Concurrency 3 (default is 10). Netlify / Vercel / similar
+                // serverless hosts aggressively rate-limit parallel requests,
+                // causing SPA routes to come back as 5xx or network errors
+                // which we'd record as status=0. 3 is a good compromise —
+                // still faster than serial, rarely triggers throttling.
+                ->setConcurrency(3)
+                // 200ms between requests — polite for the target host and
+                // further reduces rate-limit triggers.
+                ->setDelayBetweenRequests(200)
                 ->ignoreRobots()  // SAS-owned sites — our own content, safe to archive
                 // Stay on the site's own host. Without this, the crawler
                 // follows outbound anchor links (social, GitHub, etc.) and

@@ -109,7 +109,10 @@ class AssetDownloader
         return Asset::create([
             'snapshot_id'  => $snapshot->id,
             'url'          => $url,
-            'type'         => AssetType::fromMimeType($mime)->value,
+            // Pass URL so AssetType falls back to file extension when the
+            // mime type is empty ("") or generic ("application/octet-stream"),
+            // which happens with Netlify- and CDN-served fonts.
+            'type'         => AssetType::fromMimeType($mime, $url)->value,
             'mime_type'    => $mime,
             'size_bytes'   => $size,
             'storage_path' => $path,
