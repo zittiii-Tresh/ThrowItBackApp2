@@ -24,8 +24,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $this->call([
-            SiteSeeder::class,
-        ]);
+        // No site seeding — sites are added by admins via /admin/sites/create
+        // so the environment only ever contains real, actually-crawlable sites.
     }
 }
