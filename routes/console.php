@@ -25,5 +25,9 @@ Artisan::command('inspire', function () {
  */
 Schedule::command('crawl:dispatch-due')
     ->everyMinute()
-    ->withoutOverlapping(5)
-    ->runInBackground();
+    ->withoutOverlapping(5);
+// Intentionally NOT ->runInBackground() — that spawns a visible cmd.exe
+// window on Windows every minute. Our command finishes in a few hundred
+// milliseconds (it just queries due sites and popen-spawns detached
+// crawl processes), so running it inline in the scheduler's own php-win
+// process is plenty fast and completely silent.

@@ -29,25 +29,35 @@ class Notifications extends Page
         return 'Notifications';
     }
 
-    /** Sidebar badge — number of unread events, empty when zero. */
+    /**
+     * Feed is scoped to crawl failures only — the Notifications screen is
+     * meant to surface things an admin needs to act on. Successful crawls,
+     * storage warnings, "site added" info events etc. still get written
+     * to system_events (they may be useful for analytics or a future
+     * activity log), but they don't clutter this page.
+     */
+    protected static function failureQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return SystemEvent::query()->where('event', 'crawl.failed');
+    }
+
+    /** Sidebar badge — unread crawl failures, empty when zero. */
     public static function getNavigationBadge(): ?string
     {
-        $n = SystemEvent::unread()->count();
+        $n = self::failureQuery()->whereNull('read_at')->count();
         return $n > 0 ? (string) $n : null;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        // Red when any error-level events are unread.
-        return SystemEvent::unread()->where('level', 'error')->exists()
-            ? 'danger'
-            : 'primary';
+        // Always danger — this feed only ever contains failures.
+        return 'danger';
     }
 
-    /** Newest events first, capped to 100. */
+    /** Newest failed crawls first, capped to 100. */
     public function getEvents(): Collection
     {
-        return SystemEvent::query()
+        return self::failureQuery()
             ->with(['site', 'crawlRun'])
             ->latest()
             ->limit(100)

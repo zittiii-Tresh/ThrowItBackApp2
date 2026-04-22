@@ -23,10 +23,10 @@
 
     @if ($events->isEmpty())
         <div class="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-900">
-            <x-filament::icon icon="heroicon-o-bell-slash" class="mx-auto h-10 w-10 text-gray-400"/>
-            <h3 class="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">No notifications yet</h3>
+            <x-filament::icon icon="heroicon-o-check-circle" class="mx-auto h-10 w-10 text-emerald-500"/>
+            <h3 class="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">All healthy</h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Crawl completions, failures, and storage warnings will appear here.
+                No failed crawls. Only crawls that fail will appear here — successes are silent.
             </p>
         </div>
     @else
