@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\Snapshot;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -114,9 +115,33 @@ class ArchiveController extends Controller
      * snapshot + sha1(original_url). That hash is exactly what
      * HtmlRewriter bakes into the saved HTML, so rewritten refs resolve
      * 1:1 through this endpoint.
+     *
+     * Caching strategy: assets are content-addressed (the sha1 in the URL
+     * IS the cache key — a different bytes-on-disk would produce a
+     * different sha1). So we set `immutable` + a 1-year max-age and use a
+     * strong ETag so repeat hits short-circuit at If-None-Match without
+     * ever opening the file. First load: full 200 + body. Every subsequent
+     * load: 304 with no body, or skipped entirely by the browser.
      */
-    public function asset(Snapshot $snapshot, string $hash): SymfonyResponse
+    public function asset(Request $request, Snapshot $snapshot, string $hash): SymfonyResponse
     {
+        // ETag is the sha1 in the URL itself — already unique per asset.
+        // Quoted per RFC 7232. Browsers send it back in If-None-Match.
+        $etag = '"' . $hash . '"';
+
+        $maxAge       = (int) config('archive.playback.asset_max_age', 31536000);
+        $cacheControl = "public, max-age={$maxAge}, immutable";
+
+        // Fast path: client already has it. Return 304 without touching
+        // the DB or disk. Saves the SHA1() query + Storage::exists() +
+        // file streaming on every cached hit.
+        if ($request->headers->get('If-None-Match') === $etag) {
+            return response('', 304, [
+                'ETag'          => $etag,
+                'Cache-Control' => $cacheControl,
+            ]);
+        }
+
         $asset = Asset::where('snapshot_id', $snapshot->id)
             ->whereRaw('SHA1(url) = ?', [$hash])
             ->first();
@@ -130,7 +155,8 @@ class ArchiveController extends Controller
         // Stream the binary so large images/videos don't balloon PHP memory.
         return Storage::disk('archive')->response($asset->storage_path, null, [
             'Content-Type'  => $asset->mime_type ?: 'application/octet-stream',
-            'Cache-Control' => 'public, max-age=3600',
+            'Cache-Control' => $cacheControl,
+            'ETag'          => $etag,
         ]);
     }
 }

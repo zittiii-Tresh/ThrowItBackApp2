@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Admin Screen 4 — Crawl History.
@@ -36,6 +37,10 @@ class CrawlRunResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            // Eager-load `site` so the status column blade (which reads
+            // $run->site->max_pages for the progress bar baseline) and
+            // the `site.name` text column don't hit N+1.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('site:id,name,max_pages'))
             ->columns([
                 // Every column is centered so headers + values sit under each
                 // other consistently — per user request. Numeric and text
@@ -136,8 +141,9 @@ class CrawlRunResource extends Resource
             ->emptyStateHeading('No crawl runs yet')
             ->emptyStateDescription('Crawls dispatched by the scheduler or manual triggers will appear here.')
             ->emptyStateIcon('heroicon-o-clock')
-            // Auto-refresh so in-flight runs' progress bars animate live.
-            ->poll('2s');
+            // Adaptive poll: 2s while a crawl is Running so the bar
+            // animates, 15s when idle. One cheap EXISTS per tick.
+            ->poll(fn (): string => CrawlRun::where('status', CrawlStatus::Running)->exists() ? '2s' : '15s');
     }
 
     public static function getPages(): array

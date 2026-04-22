@@ -1,7 +1,8 @@
 @php
     /** @var \App\Models\Site $site */
     $site = $getRecord();
-    $latest = $site->crawlRuns()->latest('id')->first();
+    // Eager-loaded by SiteResource::table()->modifyQueryUsing() — no per-row query.
+    $latest = $site->latestCrawlRun;
     $isRunning = $latest && $latest->status->value === 'running';
 
     // Estimated total pages for the progress calculation:

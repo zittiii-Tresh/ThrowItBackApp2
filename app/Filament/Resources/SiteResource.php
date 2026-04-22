@@ -4,9 +4,12 @@ namespace App\Filament\Resources;
 
 use App\Enums\FrequencyType;
 use App\Enums\NotifyChannel;
+use App\Enums\CrawlStatus;
 use App\Filament\Resources\SiteResource\Pages;
+use App\Models\CrawlRun;
 use App\Models\Site;
 use App\Support\DetachedCrawl;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
@@ -162,6 +165,13 @@ class SiteResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Eager-load the relations the table touches so the per-row Status
+            // column doesn't N+1. `withSum('crawlRuns as storage_total_bytes',
+            // 'storage_bytes')` aggregates storage in a single SELECT instead
+            // of one query per site row.
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->with('latestCrawlRun')
+                ->withSum('crawlRuns as storage_total_bytes', 'storage_bytes'))
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->weight('semibold')
@@ -184,11 +194,12 @@ class SiteResource extends Resource
                     ->alignment('center'),
 
                 // Total bytes archived across every crawl run for this site.
-                // Sums at query time — table is small, no need to cache.
+                // Sum is eager-loaded by ->withSum() in modifyQueryUsing()
+                // above, so no per-row query.
                 Tables\Columns\TextColumn::make('storage_total')
                     ->label('Storage')
                     ->state(function (Site $r): string {
-                        $bytes = (int) $r->crawlRuns()->sum('storage_bytes');
+                        $bytes = (int) ($r->storage_total_bytes ?? 0);
                         if ($bytes === 0) return '—';
                         return match (true) {
                             $bytes < 1024           => $bytes . ' B',
@@ -267,10 +278,10 @@ class SiteResource extends Resource
             ->emptyStateDescription('Register the first site to start archiving.')
             ->emptyStateIcon('heroicon-o-globe-alt')
             ->defaultSort('name')
-            // Auto-refresh every 2s so the Status column's progress bar
-            // ticks forward live while a crawl is running. Filament runs
-            // a cheap single query per tick — no background websockets.
-            ->poll('2s');
+            // Adaptive poll: 2s while any crawl is in flight (so the
+            // progress bar animates smoothly), 15s when idle (just keeps
+            // the "Last crawl" column fresh). One cheap EXISTS per tick.
+            ->poll(fn (): string => CrawlRun::where('status', CrawlStatus::Running)->exists() ? '2s' : '15s');
     }
 
     public static function getPages(): array

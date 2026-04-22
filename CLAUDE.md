@@ -123,6 +123,17 @@ MAIL_PASSWORD=<in .env — gitignored>
 MAIL_FROM_ADDRESS=sas@sitearchive.com    # Gmail "Send mail as" alias
 ```
 
+### Performance knobs (config/archive.php → .env overrides)
+
+```
+ARCHIVE_CRAWL_CONCURRENCY=10        # parallel HTTP per crawl (drop to 3-5 if a host rate-limits)
+ARCHIVE_CRAWL_DELAY_MS=0            # ms between requests; bump only if a target needs throttling
+ARCHIVE_CRAWL_TIMEOUT=30            # per-request timeout
+ARCHIVE_CRAWL_CONNECT_TIMEOUT=10
+ARCHIVE_CRAWL_MAX_REDIRECTS=3
+ARCHIVE_ASSET_MAX_AGE=31536000      # 1y; assets are content-addressed by sha1 so cache is safe
+```
+
 ---
 
 ## Architectural decisions worth remembering
