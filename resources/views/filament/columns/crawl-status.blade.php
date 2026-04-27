@@ -31,23 +31,15 @@
 @endphp
 
 @if ($isRunning)
-    <div class="flex min-w-[14rem] flex-col gap-1.5">
-        <div class="flex items-center justify-between text-[11px] font-medium">
-            <span class="inline-flex items-center gap-1 text-primary-600 dark:text-primary-400">
-                <svg class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                </svg>
-                <span>Crawling</span>
-            </span>
-            <span class="text-gray-600 dark:text-gray-400">{{ $percent }}%</span>
-        </div>
-        <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-            <div
-                class="h-full rounded-full bg-gradient-to-r from-primary-500 to-primary-400 transition-all duration-700"
-                style="width: {{ $percent }}%"
-            ></div>
-        </div>
+    {{-- Compact one-line indicator: spinner + "Crawling" + percent.
+         No progress bar underneath — was visual noise per user request. --}}
+    <div class="inline-flex items-center text-[11px] font-medium text-primary-600 dark:text-primary-400" style="gap: 0.5rem;">
+        <svg class="animate-spin" fill="none" viewBox="0 0 24 24" style="width: 0.875rem; height: 0.875rem;">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+        </svg>
+        <span>Crawling</span>
+        <span class="text-gray-600 dark:text-gray-400">{{ $percent }}%</span>
     </div>
 @elseif ($latest)
     <div class="flex items-center gap-2 text-xs">

@@ -11,21 +11,21 @@ return [
 
     'crawler' => [
 
-        // Parallel HTTP requests in flight. Spatie/Crawler's default is 10;
-        // the previous defensive setting was 3 (after partial-failure pain
-        // on Netlify SPA cold starts in commit ca26a60). 10 is fine for
-        // SAS-owned hosts; drop to 3-5 if a site starts producing partials.
-        'concurrency' => (int) env('ARCHIVE_CRAWL_CONCURRENCY', 10),
+        // Parallel HTTP requests in flight. Lowered from 10 to 3 because
+        // SAS staging hosts on wpstaqhosting.com choke at high concurrency
+        // (run #43 lost 17 of 20 pages to status=0 timeouts at conc=10).
+        // 3 is gentle, captures reliably, and is still faster than serial.
+        // Bump back up only for hosts known to handle it.
+        'concurrency' => (int) env('ARCHIVE_CRAWL_CONCURRENCY', 3),
 
         // Milliseconds between requests. 0 = full speed (Spatie's default).
-        // The old hardcoded 200ms was legacy throttling — at concurrency 10
-        // that's a ~2s pause every 10 requests, which dominates wall time
-        // on small sites. Set to >0 only if a target host needs it.
+        // Set to >0 only if a target host needs additional throttling.
         'delay_ms' => (int) env('ARCHIVE_CRAWL_DELAY_MS', 0),
 
-        // Per-request HTTP timeouts (seconds). Generous for SPA cold-starts.
-        'timeout'         => (int) env('ARCHIVE_CRAWL_TIMEOUT', 30),
-        'connect_timeout' => (int) env('ARCHIVE_CRAWL_CONNECT_TIMEOUT', 10),
+        // Per-request HTTP timeouts (seconds). Generous for slow WP staging
+        // backends — bumped from 30 to 45 to ride out the cold-start spike.
+        'timeout'         => (int) env('ARCHIVE_CRAWL_TIMEOUT', 45),
+        'connect_timeout' => (int) env('ARCHIVE_CRAWL_CONNECT_TIMEOUT', 15),
 
         // Max redirects followed per page fetch.
         'max_redirects' => (int) env('ARCHIVE_CRAWL_MAX_REDIRECTS', 3),

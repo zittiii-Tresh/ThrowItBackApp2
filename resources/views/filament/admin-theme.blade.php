@@ -296,6 +296,18 @@
         transition: background-color 200ms ease, box-shadow 250ms ease;
     }
 
+    /* =========================================================================
+       Wider page container — Filament caps pages at max-w-7xl (1280px) by
+       default which truncates URL columns on tables with many columns.
+       Push to the full window width minus a bit of breathing room.
+       --------------------------------------------------------------------- */
+    .fi-main {
+        max-width: none !important;
+    }
+    .fi-page {
+        max-width: none !important;
+    }
+
     /* Empty-state icon halo — matches Filament's TableWidget empty state.
        Defined explicitly here because Filament's compiled Tailwind doesn't
        include h-14/w-14 utility classes by default, so doing this with

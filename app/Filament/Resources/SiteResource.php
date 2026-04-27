@@ -221,7 +221,11 @@ class SiteResource extends Resource
                 Tables\Columns\TextColumn::make('base_url')
                     ->color('gray')
                     ->searchable()
-                    ->limit(50)
+                    // Show the full URL — wpstaqhosting subdomains run ~70 chars
+                    // and previously got truncated with "...". Tooltip shows
+                    // the full URL on hover too as a backup.
+                    ->wrap()
+                    ->tooltip(fn ($record) => $record->base_url)
                     ->alignment('center'),
 
                 // Schedule column uses the model helper — "Every 2 days", "MWF", etc.

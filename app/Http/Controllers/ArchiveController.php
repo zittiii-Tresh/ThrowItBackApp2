@@ -118,9 +118,12 @@ class ArchiveController extends Controller
                     return "<a{$preAttrs}href={$quote}/archive/snapshot/{$targetId}{$quote}{$postAttrs}>";
                 }
 
-                // Internal path but no matching snapshot — leave alone (might
-                // be a relative hash link, a form target, etc).
-                return $full;
+                // Internal path but no matching archived snapshot — neutralize
+                // so clicking doesn't accidentally navigate the iframe to the
+                // live site (or 404 inside our app). Preserve the original
+                // URL in data-archived-href so admins can still see what was
+                // there. Tooltip explains why nothing happens on click.
+                return "<a{$preAttrs}href={$quote}#{$quote}{$postAttrs} data-archived-href=\"{$href}\" title=\"This page wasn't captured in this crawl run\">";
             },
             $html,
         ) ?? $html;
