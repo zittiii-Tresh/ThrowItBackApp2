@@ -44,20 +44,24 @@ class Site extends Model
         'last_crawled_at',
         'next_run_at',
         'retention_months',  // null = use global default; 0 = keep forever; 1-12 = months
+        'capture_screenshots',
+        'settle_ms_override',  // null = use global archive.renderer.settle_ms
     ];
 
     protected function casts(): array
     {
         return [
-            'crawl_depth'      => 'integer',
-            'max_pages'        => 'integer',
-            'frequency_type'   => FrequencyType::class,
-            'frequency_config' => 'array',
-            'notify_channels'  => 'array',
-            'is_active'        => 'boolean',
-            'last_crawled_at'  => 'datetime',
-            'next_run_at'      => 'datetime',
-            'retention_months' => 'integer',
+            'crawl_depth'         => 'integer',
+            'max_pages'           => 'integer',
+            'frequency_type'      => FrequencyType::class,
+            'frequency_config'    => 'array',
+            'notify_channels'     => 'array',
+            'is_active'           => 'boolean',
+            'last_crawled_at'     => 'datetime',
+            'next_run_at'         => 'datetime',
+            'retention_months'    => 'integer',
+            'capture_screenshots' => 'boolean',
+            'settle_ms_override'  => 'integer',
         ];
     }
 

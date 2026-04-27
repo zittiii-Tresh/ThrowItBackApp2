@@ -40,21 +40,47 @@
                 ← Calendar
             </a>
 
-            {{-- Viewport switcher --}}
-            <div class="inline-flex items-center gap-1 rounded-md border border-surface-200 bg-surface-50 p-0.5 text-xs dark:border-surface-800 dark:bg-surface-900">
-                <span class="px-2 text-surface-500 dark:text-surface-400">Viewport:</span>
-                @foreach (['desktop' => 'Desktop', 'tablet' => 'Tablet', 'mobile' => 'Mobile'] as $key => $label)
-                    <button
-                        type="button"
-                        wire:click="setViewport('{{ $key }}')"
-                        @class([
-                            'rounded px-2.5 py-1 font-medium transition',
-                            'bg-white text-brand-700 shadow-sm dark:bg-surface-800 dark:text-brand-300' => $viewport === $key,
-                            'text-surface-600 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100' => $viewport !== $key,
-                        ])
-                    >{{ $label }}</button>
-                @endforeach
-            </div>
+            {{-- View mode: Snapshot (interactive HTML) vs Screenshot (visual JPEG).
+                 Only renders when this snapshot actually has a screenshot — older
+                 snapshots or sites with capture_screenshots=false won't have one. --}}
+            @if ($snapshot->screenshot_file_id)
+                <div class="inline-flex items-center gap-1 rounded-md border border-surface-200 bg-surface-50 p-0.5 text-xs dark:border-surface-800 dark:bg-surface-900">
+                    <span class="px-2 text-surface-500 dark:text-surface-400">View:</span>
+                    @foreach (['snapshot' => 'Snapshot', 'screenshot' => 'Screenshot'] as $key => $label)
+                        <button
+                            type="button"
+                            wire:click="setView('{{ $key }}')"
+                            @class([
+                                'rounded px-2.5 py-1 font-medium transition',
+                                'bg-white text-brand-700 shadow-sm dark:bg-surface-800 dark:text-brand-300' => $view === $key,
+                                'text-surface-600 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100' => $view !== $key,
+                            ])
+                        >{{ $label }}</button>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Viewport switcher — only meaningful for the interactive Snapshot
+                 view. Screenshots are captured at one fixed viewport (config:
+                 archive.renderer.viewport_width/height), so we hide the switcher
+                 in screenshot mode rather than letting the user pick a width
+                 that has no effect. --}}
+            @if ($view !== 'screenshot')
+                <div class="inline-flex items-center gap-1 rounded-md border border-surface-200 bg-surface-50 p-0.5 text-xs dark:border-surface-800 dark:bg-surface-900">
+                    <span class="px-2 text-surface-500 dark:text-surface-400">Viewport:</span>
+                    @foreach (['desktop' => 'Desktop', 'tablet' => 'Tablet', 'mobile' => 'Mobile'] as $key => $label)
+                        <button
+                            type="button"
+                            wire:click="setViewport('{{ $key }}')"
+                            @class([
+                                'rounded px-2.5 py-1 font-medium transition',
+                                'bg-white text-brand-700 shadow-sm dark:bg-surface-800 dark:text-brand-300' => $viewport === $key,
+                                'text-surface-600 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100' => $viewport !== $key,
+                            ])
+                        >{{ $label }}</button>
+                    @endforeach
+                </div>
+            @endif
 
             {{-- Page tabs — every captured page in the same crawl run --}}
             @if ($siblings->count() > 1)
@@ -132,6 +158,22 @@
                         ← Back to calendar
                     </a>
                 </div>
+            @elseif ($view === 'screenshot' && $snapshot->screenshot_file_id)
+                {{-- Screenshot mode: served as a JPEG from the dedup pool.
+                     Full-page (height grows with the page), so we drop the
+                     fixed-height container and let the page scroll. --}}
+                <div class="mx-auto max-w-7xl overflow-hidden rounded-lg border border-surface-200 bg-white shadow-sm dark:border-surface-800 dark:bg-surface-950">
+                    <img
+                        src="{{ route('archive.screenshot', $snapshot) }}"
+                        alt="Full-page screenshot of {{ $snapshot->url }}"
+                        class="block w-full h-auto"
+                        loading="lazy"
+                    >
+                </div>
+                <p class="mt-2 text-center text-[11px] text-surface-500 dark:text-surface-500">
+                    Captured at {{ config('archive.renderer.viewport_width') }}×{{ config('archive.renderer.viewport_height') }} ·
+                    Switch to Snapshot to inspect elements
+                </p>
             @else
                 <div class="mx-auto {{ $viewportClass }} overflow-hidden rounded-lg border border-surface-200 bg-white shadow-sm dark:border-surface-800 dark:bg-white">
                     {{--

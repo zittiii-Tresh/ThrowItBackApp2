@@ -130,6 +130,44 @@ class ArchiveController extends Controller
     }
 
     /**
+     * Serve the full-page JPEG screenshot for a snapshot. Lives in the
+     * same dedup pool as assets (`asset_files` table), so the bytes are
+     * content-addressed and immutable — same caching strategy as asset()
+     * with strong ETag + 1-year max-age.
+     *
+     * 404s when the snapshot has no screenshot (capture_screenshots was
+     * off, Browsershot failed mid-run, or the site is pre-screenshot).
+     */
+    public function screenshot(Request $request, Snapshot $snapshot): SymfonyResponse
+    {
+        $snapshot->loadMissing('screenshotFile');
+        $file = $snapshot->screenshotFile;
+
+        abort_unless($file !== null, 404, 'No screenshot for this snapshot.');
+
+        $etag = '"' . $file->sha256 . '"';
+        $maxAge = (int) config('archive.playback.asset_max_age', 31536000);
+        $cacheControl = "public, max-age={$maxAge}, immutable";
+
+        if ($request->headers->get('If-None-Match') === $etag) {
+            return response('', 304, [
+                'ETag'          => $etag,
+                'Cache-Control' => $cacheControl,
+            ]);
+        }
+
+        if (! Storage::disk('archive')->exists($file->storage_path)) {
+            abort(404, 'Screenshot missing on disk.');
+        }
+
+        return Storage::disk('archive')->response($file->storage_path, null, [
+            'Content-Type'  => $file->mime_type ?: 'image/jpeg',
+            'Cache-Control' => $cacheControl,
+            'ETag'          => $etag,
+        ]);
+    }
+
+    /**
      * Serve an archived asset (image, CSS, JS, font) — looked up by
      * snapshot + sha1(original_url). That hash is exactly what
      * HtmlRewriter bakes into the saved HTML, so rewritten refs resolve

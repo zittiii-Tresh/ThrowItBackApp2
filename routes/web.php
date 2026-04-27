@@ -21,6 +21,7 @@ Route::get('/compare/{site}',   ArchiveCompare::class)->name('archive.compare');
 // (viewport switcher / page tabs / asset panel). For now they let you
 // load a captured snapshot directly in the browser to verify the crawl.
 Route::get('/archive/snapshot/{snapshot}',     [ArchiveController::class, 'snapshot'])->name('archive.snapshot');
+Route::get('/archive/screenshot/{snapshot}',   [ArchiveController::class, 'screenshot'])->name('archive.screenshot');
 Route::get('/archive/asset/{snapshot}/{hash}', [ArchiveController::class, 'asset'])->name('archive.asset');
 
 /*

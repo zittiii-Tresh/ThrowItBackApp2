@@ -2,6 +2,7 @@
 
 namespace App\Services\Archive;
 
+use App\Models\AssetFile;
 use App\Models\CrawlRun;
 use App\Models\Snapshot;
 use GuzzleHttp\Exception\RequestException;
@@ -57,20 +58,9 @@ class ArchiveCrawlObserver extends CrawlObserver
         $statusCode = $response->getStatusCode();
         $body       = (string) $response->getBody();
 
-        // ★ Browsershot pass: re-render in real Chromium and use the
-        // post-render DOM as the body. Captures JS-injected content,
-        // resolved CSS variables, lazy images that fired, etc — much
-        // closer to "what the user actually sees" than the raw response.
-        // Falls back to the original body if rendering fails.
-        if ($this->renderer->isBrowsershotEnabled()) {
-            $rendered = $this->renderer->renderHtml($urlString);
-            if ($rendered !== null) {
-                $body = $rendered;
-            }
-        }
-
-        // Create the Snapshot row first — we need its ID to build the
-        // /archive/asset/{id}/{hash} URLs the rewriter emits.
+        // Create the Snapshot row first — we need its ID to (a) attach a
+        // screenshot via screenshot_file_id and (b) build the
+        // /archive/asset/{id}/{hash} URLs the rewriter emits below.
         $snapshot = Snapshot::create([
             'crawl_run_id' => $this->run->id,
             'url'          => $urlString,
@@ -81,6 +71,30 @@ class ArchiveCrawlObserver extends CrawlObserver
             'asset_count'  => 0,
             'html_bytes'   => 0,
         ]);
+
+        // Per-site override for the renderer's image-wait timeout. Slow
+        // staging hosts can set this higher in Site Edit; null falls back
+        // to archive.renderer.settle_ms (default 20s).
+        $settleOverride = $this->run->site?->settle_ms_override;
+
+        // ★ Screenshot pass FIRST — capture the live page as it actually
+        // renders before we touch anything. The screenshot is the visual
+        // ground truth that the HTML rewriter's best-effort layout can
+        // fall back to. Includes lazy-load forcing + scroll-to-bottom so
+        // below-fold images appear in the JPEG. See PageRenderer::renderScreenshot.
+        $this->captureScreenshot($snapshot, $urlString, $settleOverride);
+
+        // ★ Browsershot HTML pass: re-render in real Chromium and use the
+        // post-render DOM as the body. Captures JS-injected content,
+        // resolved CSS variables, lazy images that fired, etc — much
+        // closer to "what the user actually sees" than the raw response.
+        // Falls back to the original body if rendering fails.
+        if ($this->renderer->isBrowsershotEnabled()) {
+            $rendered = $this->renderer->renderHtml($urlString, $settleOverride);
+            if ($rendered !== null) {
+                $body = $rendered;
+            }
+        }
 
         // Rewrite HTML and pull out asset URLs.
         $rewrite = $this->rewriter->rewrite($body, $urlString, $snapshot->id);
@@ -104,6 +118,35 @@ class ArchiveCrawlObserver extends CrawlObserver
         // Keep the CrawlRun counters live so the admin dashboard can watch
         // a running crawl in real time.
         $this->run->increment('pages_crawled');
+    }
+
+    /**
+     * Capture a JPEG screenshot of $url and link it to $snapshot via the
+     * dedup pool. Silently no-ops if the site has screenshots disabled or
+     * Browsershot isn't the active renderer. Failures are logged but do
+     * not propagate — a missing screenshot is preferable to a failed crawl.
+     */
+    protected function captureScreenshot(Snapshot $snapshot, string $url, ?int $settleTimeoutMs = null): void
+    {
+        if (! $this->renderer->isBrowsershotEnabled()) {
+            return;
+        }
+
+        $site = $this->run->site;
+        if (! $site || ! $site->capture_screenshots) {
+            return;
+        }
+
+        $bytes = $this->renderer->renderScreenshot($url, $settleTimeoutMs);
+        if ($bytes === null) {
+            return;
+        }
+
+        $sha = hash('sha256', $bytes);
+        $file = AssetFile::firstOrCreatePool($sha, $bytes, 'image/jpeg', 'jpg');
+        $file->addRef();
+
+        $snapshot->update(['screenshot_file_id' => $file->id]);
     }
 
     /**

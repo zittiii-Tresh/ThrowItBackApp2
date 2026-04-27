@@ -92,6 +92,22 @@ class SiteResource extends Resource
                             ->numeric()->minValue(1)->maxValue(10_000)
                             ->default(500)->required(),
                     ]),
+
+                    Forms\Components\Toggle::make('capture_screenshots')
+                        ->label('Capture full-page screenshot')
+                        ->helperText('Saves a JPEG of each page alongside the HTML — visual fallback when layout doesn\'t reproduce perfectly. Adds ~5–10s per page to crawl time.')
+                        ->default(true)
+                        ->onColor('success'),
+
+                    Forms\Components\TextInput::make('settle_ms_override')
+                        ->label('Image wait timeout (advanced)')
+                        ->helperText('Max ms to wait for every image on a page to load before capture. Leave blank to use the global default (20000ms). Increase to 30000–45000 for very slow staging hosts where images consistently miss the cutoff.')
+                        ->numeric()
+                        ->minValue(2000)
+                        ->maxValue(120000)
+                        ->step(1000)
+                        ->placeholder('20000 (default)')
+                        ->suffix('ms'),
                 ])
                 ->columns(1),
 

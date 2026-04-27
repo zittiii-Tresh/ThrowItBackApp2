@@ -39,6 +39,15 @@ class ArchiveViewer extends Component
     #[Url(as: 'panel')]
     public bool $assetsPanelOpen = false;
 
+    /**
+     * Which view is shown in the main pane:
+     *   'snapshot'   — the rewritten HTML in an iframe (interactive, inspectable)
+     *   'screenshot' — the captured JPEG (visual fidelity)
+     * Persists in URL so reload + page-tab navigation keeps the same mode.
+     */
+    #[Url(as: 'mode')]
+    public string $view = 'snapshot';
+
     public function mount(Snapshot $snapshot): void
     {
         $this->snapshot = $snapshot->load('crawlRun.site');
@@ -93,6 +102,13 @@ class ArchiveViewer extends Component
     {
         if (in_array($v, ['desktop', 'tablet', 'mobile'], true)) {
             $this->viewport = $v;
+        }
+    }
+
+    public function setView(string $v): void
+    {
+        if (in_array($v, ['snapshot', 'screenshot'], true)) {
+            $this->view = $v;
         }
     }
 

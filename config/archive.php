@@ -46,9 +46,22 @@ return [
         'node_binary' => env('ARCHIVE_NODE_BINARY', 'C:/laragon/bin/nodejs/node-v22/node.exe'),
         'npm_binary'  => env('ARCHIVE_NPM_BINARY',  'C:/laragon/bin/nodejs/node-v22/npm.cmd'),
 
-        // Wait for the rendered page to "settle" before capturing. Lets
-        // JavaScript-loaded fonts, lazy images, etc finish.
-        'wait_until_ms' => (int) env('ARCHIVE_RENDER_WAIT_MS', 1500),
+        // Maximum time (ms) to wait for every <img> on a page to finish
+        // loading (or errored) before capture fires. The render is
+        // EVENT-DRIVEN now: fast pages may settle in 1-2s and capture
+        // immediately; slow staging hosts may need 15-20s for images to
+        // actually arrive. This is a ceiling, not a fixed wait — pages
+        // never wait longer than they need to.
+        //
+        // Per-site override available via Site.settle_ms_override for
+        // truly problem hosts. Bump globally only if MOST sites are slow.
+        'settle_ms' => (int) env('ARCHIVE_RENDER_SETTLE_MS', 20000),
+
+        // Tiny baseline delay applied AFTER waitForFunction succeeds, to
+        // catch font rendering and CSS animations that don't show up in
+        // image.complete checks. Keep small — waitForFunction is doing
+        // the real waiting.
+        'baseline_ms' => (int) env('ARCHIVE_RENDER_BASELINE_MS', 500),
 
         // Max seconds Chromium gets per page before we give up. Default
         // generous because cold WP backends can be slow.
@@ -58,6 +71,13 @@ return [
         // pages render at their desktop layout, not mobile.
         'viewport_width'  => (int) env('ARCHIVE_RENDER_VIEWPORT_W', 1440),
         'viewport_height' => (int) env('ARCHIVE_RENDER_VIEWPORT_H', 900),
+
+        // Full-page screenshot tunables. Captured once per page when the
+        // site has capture_screenshots = true. JPEG keeps file size sane;
+        // quality 75 is the sweet spot — visually clean without ballooning
+        // the dedup pool.
+        'screenshot_quality'   => (int) env('ARCHIVE_SCREENSHOT_QUALITY', 75),
+        'screenshot_full_page' => filter_var(env('ARCHIVE_SCREENSHOT_FULL_PAGE', true), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'playback' => [
