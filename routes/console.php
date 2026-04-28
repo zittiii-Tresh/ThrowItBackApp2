@@ -46,7 +46,15 @@ Schedule::command('crawl:dispatch-due')
  | Reads the hour at scheduler-tick time so changes take effect on the
  | NEXT day's run without redeploying.
  */
-$cleanupHour = (int) (\App\Models\Setting::current()->cleanup_hour ?? 3);
+// Defensive fallback: on a fresh install (artisan migrate hasn't run yet)
+// the `settings` table doesn't exist, and reading Setting::current() throws.
+// Default to 3am in that case so `migrate` itself doesn't blow up while
+// the console kernel is being booted.
+try {
+    $cleanupHour = (int) (\App\Models\Setting::current()->cleanup_hour ?? 3);
+} catch (\Throwable $e) {
+    $cleanupHour = 3;
+}
 Schedule::command('archive:retention')
     ->dailyAt(sprintf('%02d:00', $cleanupHour))
     ->withoutOverlapping(60);
