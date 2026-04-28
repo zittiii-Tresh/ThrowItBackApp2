@@ -46,6 +46,14 @@ return [
         'node_binary' => env('ARCHIVE_NODE_BINARY', 'C:/laragon/bin/nodejs/node-v22/node.exe'),
         'npm_binary'  => env('ARCHIVE_NPM_BINARY',  'C:/laragon/bin/nodejs/node-v22/npm.cmd'),
 
+        // Puppeteer's Chromium cache directory. Defaults to ~/.cache/puppeteer
+        // when null, which is correct on the dev box but wrong in the portable
+        // bundle (where Chromium ships inside the bundle folder). PageRenderer
+        // explicitly putenv()'s this before spawning Browsershot so the value
+        // is guaranteed to reach Puppeteer regardless of how the env propagates
+        // through detached subprocesses.
+        'puppeteer_cache_dir' => env('PUPPETEER_CACHE_DIR'),
+
         // Maximum time (ms) to wait for every <img> on a page to finish
         // loading (or errored) before capture fires. The render is
         // EVENT-DRIVEN now: fast pages may settle in 1-2s and capture

@@ -39,6 +39,20 @@ class PageRenderer
     public function __construct(protected ?array $cfg = null)
     {
         $this->cfg = $cfg ?? config('archive.renderer');
+
+        // Defensive PUPPETEER_CACHE_DIR propagation. The portable bundle ships
+        // Chromium inside the bundle folder and sets PUPPETEER_CACHE_DIR in
+        // Start.bat, but the env var has to survive Start.bat → schedule loop
+        // → crawl:dispatch-due → DetachedCrawl::spawn → Browsershot → Puppeteer
+        // Node spawn. Anywhere along that chain a process can lose it.
+        // Setting it here via putenv() / $_ENV makes it guaranteed-present
+        // for the immediate Browsershot call regardless of upstream behavior.
+        if (! empty($this->cfg['puppeteer_cache_dir'])) {
+            $abs = realpath($this->cfg['puppeteer_cache_dir']) ?: $this->cfg['puppeteer_cache_dir'];
+            putenv('PUPPETEER_CACHE_DIR=' . $abs);
+            $_ENV['PUPPETEER_CACHE_DIR']    = $abs;
+            $_SERVER['PUPPETEER_CACHE_DIR'] = $abs;
+        }
     }
 
     /**

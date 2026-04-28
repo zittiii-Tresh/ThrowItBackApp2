@@ -43,16 +43,18 @@ REM Make sure caches are fresh — config/route changes between launches.
 "%PHP_CLI%" artisan config:clear >nul 2>&1
 "%PHP_CLI%" artisan route:clear >nul 2>&1
 
-REM Launch the scheduler in a hidden background process. schedule:work loops
-REM internally and dispatches due crawls every minute — replaces the Windows
-REM Task Scheduler entry. Killed automatically when this window closes.
+REM Launch the scheduler in a hidden background process. sitearchive:loop is
+REM our in-process replacement for `schedule:work` — fires schedule:run via
+REM $this->call() (in-process) instead of a Symfony Process subprocess that
+REM Windows wraps in cmd.exe. Net effect: zero cmd flashes per minute.
 echo [scheduler] starting in background
-start "SiteArchive scheduler" /B "%PHP_BIN%" artisan schedule:work
+start "SiteArchive scheduler" /B "%PHP_BIN%" artisan sitearchive:loop
 
 REM Open the default browser to the public landing page after a short delay
-REM so the dev server has time to bind the port.
-echo [browser] opening http://127.0.0.1:8000 in 2 seconds
-start "" /B cmd /c "timeout /t 2 >nul && start http://127.0.0.1:8000"
+REM so the dev server has time to bind the port. Using PowerShell with
+REM -WindowStyle Hidden so no cmd window flashes during startup.
+echo [browser] opening http://127.0.0.1:8000 in ~2 seconds
+start "" /B powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:8000'"
 
 REM Run the dev server in the foreground. Ctrl+C or closing this window
 REM stops everything.
