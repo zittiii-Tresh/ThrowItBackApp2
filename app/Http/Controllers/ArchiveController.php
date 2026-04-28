@@ -200,10 +200,13 @@ class ArchiveController extends Controller
         }
 
         // Eager-load the dedup pool entry so the resolver below doesn't
-        // do a second query.
+        // do a second query. Lookup is by indexed url_sha1 column — used
+        // to be `whereRaw('SHA1(url) = ?')` but that's MySQL-only and
+        // breaks the SQLite/portable distribution. The Asset model's
+        // saving hook keeps url_sha1 in sync with url.
         $asset = Asset::with('assetFile')
             ->where('snapshot_id', $snapshot->id)
-            ->whereRaw('SHA1(url) = ?', [$hash])
+            ->where('url_sha1', $hash)
             ->first();
 
         abort_unless($asset !== null, 404);

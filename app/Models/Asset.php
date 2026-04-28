@@ -28,6 +28,7 @@ class Asset extends Model
         'snapshot_id',
         'asset_file_id',     // FK into the dedup pool (asset_files table)
         'url',
+        'url_sha1',          // sha1(url), populated automatically — see booted()
         'type',
         'mime_type',
         'size_bytes',
@@ -76,12 +77,22 @@ class Asset extends Model
     }
 
     /**
-     * Decrement the pool ref-count when this Asset is deleted, so the
-     * pool can garbage-collect orphan files. Falls back to deleting the
-     * legacy per-run file directly for un-migrated rows.
+     * Two boot hooks:
+     *   - saving: keep `url_sha1` in sync with `url` so ArchiveController
+     *     can look up by indexed column (DB-agnostic — SQLite has no
+     *     built-in SHA1 function, so this replaces the old whereRaw query).
+     *   - deleting: decrement the pool ref-count so the pool can GC orphan
+     *     files. Falls back to deleting the legacy per-run file directly
+     *     for un-migrated rows.
      */
     protected static function booted(): void
     {
+        static::saving(function (Asset $asset) {
+            if ($asset->isDirty('url') || empty($asset->url_sha1)) {
+                $asset->url_sha1 = $asset->url ? sha1($asset->url) : null;
+            }
+        });
+
         static::deleting(function (Asset $asset) {
             if ($asset->asset_file_id) {
                 $asset->assetFile?->releaseRef();
