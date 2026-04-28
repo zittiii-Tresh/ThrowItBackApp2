@@ -48,17 +48,17 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Strong password defaults for new admin accounts (UserResource form).
+     * Password rules for new admin accounts (UserResource form).
      * Enforced wherever Password::defaults() is called.
+     *
+     * Relaxed from the previous "12 chars + mixed case + numbers + symbols
+     * + haveibeenpwned check" because the team hits the form often enough
+     * that the friction wasn't worth it for an internal tool. 8 characters
+     * is still above the NIST minimum and the admin panel sits behind
+     * rate-limited login + a password manager workflow.
      */
     protected function configurePasswordDefaults(): void
     {
-        Password::defaults(fn () => Password::min(12)
-            ->mixedCase()
-            ->letters()
-            ->numbers()
-            ->symbols()
-            ->uncompromised(),  // checks haveibeenpwned breach dataset
-        );
+        Password::defaults(fn () => Password::min(8));
     }
 }
