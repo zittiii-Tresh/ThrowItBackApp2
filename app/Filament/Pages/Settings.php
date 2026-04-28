@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -40,18 +39,8 @@ class Settings extends Page implements HasForms
         return $form
             ->schema([
                 Section::make('Storage')
-                    ->description('Where archived content is saved and how long it\'s kept.')
+                    ->description('How long archived crawls are kept and when the cleanup runs.')
                     ->schema([
-                        Forms\Components\ToggleButtons::make('storage_driver')
-                            ->label('Storage driver')
-                            ->options([
-                                'local' => 'Local disk',
-                                's3'    => 'Amazon S3',
-                            ])
-                            ->inline()
-                            ->default('local')
-                            ->helperText('Local is fine for dev and small deployments. Switch to S3 for production.'),
-
                         Forms\Components\Select::make('default_retention_months')
                             ->label('Default retention')
                             ->helperText('Sites without their own retention setting use this. Older crawls go to Trash; Trash purges 7 days later, freeing disk space.')
@@ -83,37 +72,6 @@ class Settings extends Page implements HasForms
                             ->minValue(1)
                             ->default(50)
                             ->suffix('GB'),
-                    ])
-                    ->columns(1),
-
-                Section::make('Notifications')
-                    ->description('Where to send alerts, and which events trigger them.')
-                    ->schema([
-                        Forms\Components\TextInput::make('email_recipients')
-                            ->label('Email recipients')
-                            ->helperText('Comma-separated list of email addresses.')
-                            ->placeholder('admin@sitesatscale.com, alerts@sitesatscale.com'),
-
-                        Forms\Components\TextInput::make('slack_webhook_url')
-                            ->label('Slack webhook URL')
-                            ->placeholder('https://hooks.slack.com/services/…')
-                            ->url(),
-
-                        Toggle::make('notify_on_crawl_failure')
-                            ->label('Notify on crawl failure')
-                            ->default(true)
-                            ->onColor('success'),
-
-                        Toggle::make('notify_on_storage_warning')
-                            ->label('Notify on storage warning')
-                            ->default(true)
-                            ->onColor('success'),
-
-                        Toggle::make('notify_on_crawl_success')
-                            ->label('Notify on every successful crawl')
-                            ->helperText('Leaving this off reduces noise — you still see completions on the Dashboard.')
-                            ->default(false)
-                            ->onColor('success'),
                     ])
                     ->columns(1),
             ])

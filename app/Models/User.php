@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,14 +11,12 @@ use Illuminate\Notifications\Notifiable;
 /**
  * Admin user for the SiteArchive panel.
  *
- * Implements:
- *   - MustVerifyEmail — new admins added via the Admins management screen
- *     must click the verification link in their email before they can
- *     access the panel. Laravel handles sending + verifying automatically.
- *   - FilamentUser   — canAccessPanel() is the gate: verified users in,
- *     unverified users bounced back to login.
+ * The email-verification flow was removed for the internal-tool deployment:
+ * new admins created via the Admins screen are auto-verified on save and
+ * can log in immediately with the password the inviter set. No verification
+ * email goes out, no signed-link click required.
  */
-class User extends Authenticatable implements FilamentUser, MustVerifyEmail
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -28,6 +25,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'name',
         'email',
         'password',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -44,11 +42,12 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * Filament panel access gate. Only verified users reach /admin;
-     * unverified ones see the "please verify your email" notice page.
+     * Filament panel access gate. Any authenticated user row reaches /admin
+     * — the verification check was dropped along with the rest of the
+     * verification flow.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasVerifiedEmail();
+        return true;
     }
 }

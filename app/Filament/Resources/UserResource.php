@@ -7,7 +7,6 @@ use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,16 +14,18 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 /**
- * Admin user management — a sidebar tab where existing admins can invite
- * new admins. New accounts start unverified; they can't access /admin until
- * they click the verification link Laravel emails them on create.
+ * Admin user management — a sidebar tab where existing admins can add
+ * new admins. New accounts can log in immediately with the password the
+ * inviter set; no email verification step (removed for the internal-tool
+ * deployment).
  *
  * Guard rails baked in:
  *   - You can't delete yourself (prevents locking out the only admin).
  *   - Password field is required only on create; leaving it blank on edit
  *     preserves the existing hash.
- *   - "Resend verification" row action for unverified users whose original
- *     email got lost or expired.
+ *   - email_verified_at is auto-stamped on create so listings still
+ *     show the row as "verified" and any external check on
+ *     hasVerifiedEmail() returns true.
  */
 class UserResource extends Resource
 {
@@ -41,7 +42,7 @@ class UserResource extends Resource
     {
         return $form->schema([
             Section::make('Account')
-                ->description('Verification email goes out after saving. The new admin clicks the link and sets a fresh session from there.')
+                ->description('The new admin can log in immediately with the password set here.')
                 ->schema([
                     Forms\Components\TextInput::make('name')
                         ->required()
@@ -57,12 +58,10 @@ class UserResource extends Resource
                         ->password()
                         ->revealable()
                         ->confirmed()
-                        // Use the project-wide strong defaults defined in
-                        // AppServiceProvider::configurePasswordDefaults()
-                        // — min 12, mixed case, numbers, symbols, and not
-                        // present in any known breach dataset.
+                        // Project-wide rule from AppServiceProvider::configurePasswordDefaults()
+                        // — currently min 8 characters.
                         ->rule(Password::default())
-                        ->helperText('Min 12 chars, mixed case, numbers, symbols. Checked against known breaches. Leave blank on edit to keep current password.')
+                        ->helperText('Min 8 characters. Leave blank on edit to keep current password.')
                         // Required only when creating; optional on edit.
                         ->required(fn (string $operation) => $operation === 'create')
                         // Hash if provided; skip the column entirely when blank.
@@ -74,6 +73,12 @@ class UserResource extends Resource
                         ->revealable()
                         ->requiredWith('password')
                         ->dehydrated(false),
+
+                    // Auto-stamp the verification timestamp on create so
+                    // every new admin is treated as fully active. Hidden
+                    // field — never shown in the form UI.
+                    Forms\Components\Hidden::make('email_verified_at')
+                        ->default(fn () => now()),
                 ])
                 ->columns(1),
         ]);
@@ -94,16 +99,6 @@ class UserResource extends Resource
                     ->searchable()
                     ->alignment('center'),
 
-                Tables\Columns\IconColumn::make('email_verified_at')
-                    ->label('Verified')
-                    ->boolean()
-                    ->getStateUsing(fn (User $u) => $u->hasVerifiedEmail())
-                    ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('warning')
-                    ->alignment('center'),
-
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Added')
                     ->since()
@@ -111,21 +106,6 @@ class UserResource extends Resource
                     ->alignment('center'),
             ])
             ->actions([
-                // Resend verification — only visible on unverified rows.
-                Tables\Actions\Action::make('resendVerification')
-                    ->label('Resend verification')
-                    ->icon('heroicon-m-envelope')
-                    ->color('warning')
-                    ->visible(fn (User $u) => ! $u->hasVerifiedEmail())
-                    ->requiresConfirmation()
-                    ->action(function (User $u): void {
-                        $u->sendEmailVerificationNotification();
-                        Notification::make()
-                            ->title("Verification email re-sent to {$u->email}")
-                            ->success()
-                            ->send();
-                    }),
-
                 Tables\Actions\EditAction::make(),
 
                 // Delete is always surfaced inline (not hidden in a dropdown)

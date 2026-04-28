@@ -35,6 +35,8 @@ if not exist "%~dp0database\database.sqlite" (
     echo [first-run] creating SQLite database
     type nul > "%~dp0database\database.sqlite"
     "%PHP_CLI%" artisan migrate --force
+    echo [first-run] creating default admin user (admin@sitesatscale.com / admin123)
+    "%PHP_CLI%" artisan tinker --execute="\App\Models\User::firstOrCreate(['email' => 'admin@sitesatscale.com'], ['name' => 'Admin', 'password' => bcrypt('admin123'), 'email_verified_at' => now()]);"
 )
 
 REM Make sure caches are fresh — config/route changes between launches.
