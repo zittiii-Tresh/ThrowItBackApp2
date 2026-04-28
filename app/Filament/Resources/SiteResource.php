@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Enums\FrequencyType;
-use App\Enums\NotifyChannel;
 use App\Enums\CrawlStatus;
 use App\Filament\Resources\SiteResource\Pages;
 use App\Models\CrawlRun;
@@ -191,17 +190,6 @@ class SiteResource extends Resource
                         ->seconds(false)
                         ->default('00:00')
                         ->visible(fn (Get $get) => $get('frequency_type') === FrequencyType::SpecificDays->value),
-                ])
-                ->columns(1),
-
-            Section::make('Notifications')
-                ->description('Where to send alerts for crawl failures.')
-                ->schema([
-                    Forms\Components\CheckboxList::make('notify_channels')
-                        ->label('Notify on failure')
-                        ->options(NotifyChannel::options())
-                        ->columns(2)
-                        ->default(['email']),
 
                     Forms\Components\Toggle::make('is_active')
                         ->label('Active')
